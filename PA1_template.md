@@ -5,6 +5,25 @@ collected at 5 minute intervals throughout the day. This was done for an anonymo
 over 2 months in October and November of 2012. The data includes the number of steps the
 individual took throughout each 5 minute interval.
 
+This analysis will later require functions in the lattice and reshape2 packages,
+so we load them here at the beginning.
+
+```r
+require(lattice)
+```
+
+```
+## Loading required package: lattice
+```
+
+```r
+require(reshape2)
+```
+
+```
+## Loading required package: reshape2
+```
+
 ## Loading and preprocessing the data
 The data set first needs to be unzipped. It can then be loaded into a data frame.
 The variable classes for each column are set manually to avoid confusion, as is
@@ -58,23 +77,116 @@ noNAmean <- function (x) { mean(x, na.rm = TRUE) }
 
 We can then apply this to the original data and treat the 5-minute interval as a
 factor. This will provide us with the average number of steps taken in each time
-interval over all days in the data set.
+interval over all days in the data set. The result is then converted into a data frame.
 
 ```r
-stepMean <- tapply(activity$steps,factor(activity$interval),noNAmean)
+stepMean <- with(activity, tapply(steps,factor(interval), noNAmean))
+stepMean <- melt(stepMean)
+names(stepMean) <- c("interval","steps")
 ```
 
 A line plot provides us with a visualization of this average trend over the day.
 
 ```r
-plot(unique(activity$interval), stepMean, type="l", xlab="5-Minute Interval",
+plot(stepMean$interval, stepMean$steps, type="l", xlab="Time Interval (min)",
      ylab="Avg Number of Steps", main="Mean Number of Steps Taken Per Interval")
 ```
 
 ![plot of chunk steps_avg_plot](figure/steps_avg_plot.png) 
 
+To find the time interval in which the most steps were taken on average, we first find
+the maximum number of steps. We then match this with its corresponding interval.
+
+```r
+maxSteps <- max(stepMean$steps)
+maxStepInt <- stepMean$interval[stepMean$steps == maxSteps]
+```
+This tells us that the maximum average number of steps taken in a 5-minute interval
+is 206.1698 steps in the 5-minute interval beginning at 835 minutes.
+
 ## Imputing missing values
+This data set contains many NA values which may introduce some bias in our previous
+measurements. First, let's see how many there are in the data set.
 
+```r
+numNA <- sum(is.na(activity$steps))
+```
+This reports that there are 2304 NA values present out of the 17,568 total
+number of observations. To fill in these values, we use the mean number of steps
+taken for the given interval, as computed in the previous section of this analysis.
+First we copy the original data frame to a new variable; this is then edited to fill
+in the missing values.
 
+```r
+activityFill <- activity
+for (i in seq(1,length(activityFill$steps),by=1)) {
+        if (is.na(activityFill$steps[i])) {
+                newsteps <- stepMean$steps[stepMean$interval==activityFill$interval[i]]
+                activityFill$steps[i] <- newsteps
+        }
+}
+```
+
+With this filled-in data set, we now look again at the distribution of the
+total number of steps taken per day, including its mean and median values.
+
+```r
+stepFillSum <- tapply(activityFill$steps,factor(activityFill$date),noNAsum)
+meanStepsFill <- mean(stepFillSum)
+medStepsFill <- median(stepFillSum)
+hist(stepFillSum,breaks=10,xlab="Number of Steps per Day",
+     main="Distribution of Daily Sum of Steps")
+```
+
+![plot of chunk stepFill_total_analysis](figure/stepFill_total_analysis.png) 
+
+We thus obtain a mean of 1.0766 &times; 10<sup>4</sup> steps/day and a median of 1.0766 &times; 10<sup>4</sup>
+steps/day. These values are different from before. As the NAs tend to come in
+whole-day groups, we have essentially added in entire days with the average number of
+steps taken in each interval. The total number of steps then has multiple additions of the
+same value. This skews both the mean and median to the same value. We have also filled
+in incomplete days, thus removing some of the days that had lower totals due to
+the missing values.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+In our final analysis, we want to consider the difference in activity between weekdays
+(Monday to Friday) and weekends (Saturday and Sunday). To do this, we begin by creating
+a new factor variable in our filled-in dataset that indicates whether a day is a
+weekday or on the weekend.
+
+```r
+activityFill$weekday <- weekdays(activityFill$date)
+activityFill$weekday[which(activityFill$weekday %in% c("Saturday","Sunday"))] <- "weekend"
+activityFill$weekday[which(activityFill$weekday != "weekend")] <- "weekday"
+activityFill$weekday <- factor(activityFill$weekday)
+```
+This code initially converts the dates to weekday names and saves these as the new variable.
+It then replaces all occurrences of "Saturday" or "Sunday" with "weekend". Then, all
+those that were not replaced to "weekend" are made "weekday". Lastly, the variable is
+converted to a factor which will have 2 levels.
+
+To compare the average activity over weekdays versus weekends, we first compute this
+average activity. This is averaged within both the weekday/weekend factor and the
+time interval factor.
+
+```r
+stepFillMean <- with(activityFill, tapply(steps, list(factor(interval), weekday), noNAmean))
+stepFillMean <- melt(stepFillMean)
+names(stepFillMean) <- c("interval", "weekday", "steps")
+```
+
+A plot comparing the average trends of weekends vs weekdays will show us if there is
+any difference in activity pattern between them. This plot requires the lattice package.
+
+```r
+xyplot(steps ~ interval | weekday, data = stepFillMean, type = "l",
+       layout = c(1,2), xlab="Time Interval (min)",
+       ylab="Avg Number of Steps", main="Mean Number of Steps Taken Per Interval")
+```
+
+![plot of chunk plot_weekday_vs_weekend_activity](figure/plot_weekday_vs_weekend_activity.png) 
+
+From this plot, we can see some differences in activity patterns between the average
+weekday and weekend. Most noticeably, the subject was active earlier in the morning
+on weekdays, presumably in order to go to a job. Similarly, activity continues until
+a later time on the weekend, possibly while out at social activities.
