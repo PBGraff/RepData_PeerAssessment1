@@ -8,8 +8,8 @@ individual took throughout each 5 minute interval.
 This analysis will later require functions in the lattice and reshape2 packages,
 so we load them here at the beginning.
 ```{r load_packages}
-require(lattice)
-require(reshape2)
+require(lattice, quietly=TRUE)
+require(reshape2, quietly=TRUE)
 ```
 
 ## Loading and preprocessing the data

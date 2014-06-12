@@ -190,16 +190,8 @@ individual took throughout each 5 minute interval.</p>
 <p>This analysis will later require functions in the lattice and reshape2 packages,
 so we load them here at the beginning.</p>
 
-<pre><code class="r">require(lattice)
-</code></pre>
-
-<pre><code>## Loading required package: lattice
-</code></pre>
-
-<pre><code class="r">require(reshape2)
-</code></pre>
-
-<pre><code>## Loading required package: reshape2
+<pre><code class="r">require(lattice, quietly=TRUE)
+require(reshape2, quietly=TRUE)
 </code></pre>
 
 <h2>Loading and preprocessing the data</h2>

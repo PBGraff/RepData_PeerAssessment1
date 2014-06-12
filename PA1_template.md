@@ -9,19 +9,8 @@ This analysis will later require functions in the lattice and reshape2 packages,
 so we load them here at the beginning.
 
 ```r
-require(lattice)
-```
-
-```
-## Loading required package: lattice
-```
-
-```r
-require(reshape2)
-```
-
-```
-## Loading required package: reshape2
+require(lattice, quietly=TRUE)
+require(reshape2, quietly=TRUE)
 ```
 
 ## Loading and preprocessing the data
